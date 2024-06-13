@@ -1,0 +1,43 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose
+    - name: Run clippy
+      run: cargo --all-targets --all-features
+
+  build:
+    strategy:
+      matrix:
+        features: ["ubsan", "ubsan,std"]
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build
+      run: cargo build --verbose --no-default-features --features "${{ matrix.features }}"
+    - name: Run tests
+      run: cargo test --verbose --no-default-features --features "${{ matrix.features }}"
+    - name: Build release version
+      run: cargo build --release --verbose --no-default-features --features "${{ matrix.features }}"
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: libzanitisers.a
+        path: target/release/libzanitizers.a
+
