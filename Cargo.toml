@@ -1,0 +1,21 @@
+[package]
+name = "zanitizers"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.dev]
+panic ="abort"
+
+[profile.release]
+panic ="abort"
+
+[profile.test]
+panic ="abort"
+
+[features]
+default = ["std", "ubsan"]
+std = []
+ubsan = []
