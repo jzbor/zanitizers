@@ -268,6 +268,11 @@ unsafe fn handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
 
 // UBSAN ROUTINES
 
+
+
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_builtin_unreachable(data: *const UnreachableData) {
     assert!(!data.is_null());
@@ -276,6 +281,9 @@ pub unsafe extern "C" fn __ubsan_handle_builtin_unreachable(data: *const Unreach
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_invalid_builtin(data: *const InvalidBuiltinData) {
     assert!(!data.is_null());
@@ -284,18 +292,27 @@ pub unsafe extern "C" fn __ubsan_handle_invalid_builtin(data: *const InvalidBuil
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_divrem_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
     assert!(!data.is_null());
     handle_overflow(data, lhs, rhs, "divrem", "division-overflow");
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_function_type_mismatch(data: *const FunctionTypeMismatchData, ptr: usize) {
     assert!(!data.is_null());
     handle_function_type_mismatch(data, ptr)
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidValueData, val: *const c_void) {
     assert!(!data.is_null());
@@ -308,12 +325,18 @@ pub unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidV
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_mul_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
     assert!(!data.is_null());
     handle_overflow(data, lhs, rhs, "*", "multiplication-overflow");
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowData, val: u64) {
     assert!(!data.is_null());
@@ -322,6 +345,9 @@ pub unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowDat
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_nonnull_arg(data: *const NonnullArgData) {
     assert!(!data.is_null());
@@ -330,6 +356,9 @@ pub unsafe extern "C" fn __ubsan_handle_nonnull_arg(data: *const NonnullArgData)
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsData, index: *const c_void) {
     assert!(!data.is_null());
@@ -342,6 +371,9 @@ pub unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsDa
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_pointer_overflow(data: *const PointerOverflowData, base: usize, result: usize) {
     assert!(!data.is_null());
@@ -350,6 +382,9 @@ pub unsafe extern "C" fn __ubsan_handle_pointer_overflow(data: *const PointerOve
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOutOfBoundsData, lhs: *const c_void, rhs: *const c_void) {
     assert!(!data.is_null());
@@ -389,12 +424,18 @@ pub unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOu
     epilogue();
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
     assert!(!data.is_null());
     handle_type_mismatch(data, ptr);
 }
 
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
 #[no_mangle]
 pub unsafe extern "C" fn __ubsan_handle_type_mismatch_v1(data: *const TypeMismatchDataV1, ptr: usize) {
     assert!(!data.is_null());
