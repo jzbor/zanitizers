@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use core::ffi::*;
 use core::fmt::Display;
 use core::mem;
@@ -26,6 +25,8 @@ const TYPE_CHECK_KINDS: [&str; 8] = [
 
 
 
+#[allow(dead_code)]
+#[derive(Clone, Copy)]
 #[repr(u16)]
 enum TypeKind {
     Int = 0,
@@ -33,6 +34,7 @@ enum TypeKind {
     Unknown = 0xffff,
 }
 
+#[derive(Clone)]
 #[repr(C)]
 struct SourceLocation {
     filename: *const c_char,
@@ -40,6 +42,7 @@ struct SourceLocation {
     column: u32,
 }
 
+#[derive(Clone)]
 #[repr(C)]
 struct TypeDescriptor {
     type_kind: u16,
@@ -59,12 +62,6 @@ struct FunctionTypeMismatchData {
 struct InvalidBuiltinData {
     location: SourceLocation,
     kind: u8,
-}
-
-#[repr(C)]
-struct InvalidBuiltinTypeMismatchData {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
 }
 
 #[repr(C)]
@@ -390,4 +387,22 @@ unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOutOfB
     }
 
     epilogue();
+}
+
+#[no_mangle]
+unsafe extern "C" fn __ubsan_handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
+    assert!(!data.is_null());
+    handle_type_mismatch(data, ptr);
+}
+
+#[no_mangle]
+unsafe extern "C" fn __ubsan_handle_type_mismatch_v1(data: *const TypeMismatchDataV1, ptr: usize) {
+    assert!(!data.is_null());
+    let data = TypeMismatchData {
+        location: (*data).location.clone(),
+        data_type: (*data).data_type.clone(),
+        alignment: 1 << (*data).log_alignment,
+        type_check_kind: (*data).type_check_kind,
+    };
+    handle_type_mismatch(&data, ptr);
 }

@@ -5,7 +5,7 @@ use core::ptr;
 
 
 #[cfg(feature = "ubsan")]
-mod ubsan;
+pub mod ubsan;
 #[cfg(feature = "std")]
 mod userspace;
 mod primitives;
