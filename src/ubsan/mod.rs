@@ -25,6 +25,7 @@ const TYPE_CHECK_KINDS: [&str; 8] = [
 
 
 
+/// Represents the type kind used in [`TypeDescriptor`].
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u16)]
@@ -34,42 +35,52 @@ pub enum TypeKind {
     Unknown = 0xffff,
 }
 
+/// Location of a code segment that caused undefined behavior.
 #[derive(Clone)]
 #[repr(C)]
 pub struct SourceLocation {
-    filename: *const c_char,
-    line: u32,
-    column: u32,
+    pub filename: *const c_char,
+    pub line: u32,
+    pub column: u32,
 }
 
 #[derive(Clone)]
 #[repr(C)]
+/// Describes the type of an operand.
 pub struct TypeDescriptor {
-    type_kind: u16,
-    type_info: u16,
-    type_name: *const c_char,
+    /// Encodes the [`TypeKind`] of the operand.
+    pub type_kind: u16,
+    /// Encodes additional information, such as [bit width](`Self::bit_width()`) and [whether the
+    /// type is signed](`Self::is_signed()`).
+    pub type_info: u16,
+    /// The type name as null-terminated ASCII string.
+    pub type_name: *const c_char,
 }
 
 // DATA STRUCTS
 
+/// Data struct for [`__ubsan_handle_function_type_mismatch()`]
 #[repr(C)]
 pub struct FunctionTypeMismatchData {
     pub location: SourceLocation,
     pub data_type: TypeDescriptor,
 }
 
+/// Data struct for [`__ubsan_handle_invalid_builtin()`]
 #[repr(C)]
 pub struct InvalidBuiltinData {
     pub location: SourceLocation,
     pub kind: u8,
 }
 
+/// Data struct for [`__ubsan_handle_load_invalid_value()`]
 #[repr(C)]
 pub struct InvalidValueData {
     pub location: SourceLocation,
     pub data_type: TypeDescriptor,
 }
 
+/// Data struct for [`__ubsan_handle_nonnull_arg()`]
 #[repr(C)]
 pub struct NonnullArgData {
     pub location: SourceLocation,
@@ -77,6 +88,7 @@ pub struct NonnullArgData {
     pub arg_index: u32,
 }
 
+/// Data struct for [`__ubsan_handle_out_of_bounds()`]
 #[repr(C)]
 pub struct OutOfBoundsData {
     pub location: SourceLocation,
@@ -84,17 +96,20 @@ pub struct OutOfBoundsData {
     pub index_type: TypeDescriptor,
 }
 
+/// Data struct for [`__ubsan_handle_divrem_overflow()`], [`__ubsan_handle_mul_overflow()`] and [`__ubsan_handle_negate_overflow()`]
 #[repr(C)]
 pub struct OverflowData {
     pub location: SourceLocation,
     pub data_type: TypeDescriptor,
 }
 
+/// Data struct for [`__ubsan_handle_pointer_overflow()`]
 #[repr(C)]
 pub struct PointerOverflowData {
     pub location: SourceLocation,
 }
 
+/// Data struct for [`__ubsan_handle_shift_out_of_bounds()`]
 #[repr(C)]
 pub struct ShiftOutOfBoundsData {
     pub location: SourceLocation,
@@ -102,6 +117,7 @@ pub struct ShiftOutOfBoundsData {
     pub rhs_type: TypeDescriptor,
 }
 
+/// Data struct for [`__ubsan_handle_type_mismatch()`]
 #[repr(C)]
 pub struct TypeMismatchData {
     pub location: SourceLocation,
@@ -110,6 +126,10 @@ pub struct TypeMismatchData {
     pub type_check_kind: u8,
 }
 
+/// Data struct for [`__ubsan_handle_type_mismatch_v1()`]
+///
+/// This differs from [`TypeMismatchData`] in its [`log_alignment`](`Self::log_alignment`) member, which stores the alignment
+/// as log2 of the actual value and is converted to the actual alignment internally.
 #[repr(C)]
 pub struct TypeMismatchDataV1 {
     pub location: SourceLocation,
@@ -118,6 +138,7 @@ pub struct TypeMismatchDataV1 {
     pub type_check_kind: u8,
 }
 
+/// Data struct for [`__ubsan_handle_builtin_unreachable()`]
 #[repr(C)]
 pub struct UnreachableData {
     pub location: SourceLocation,
