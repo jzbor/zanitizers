@@ -54,76 +54,76 @@ pub struct TypeDescriptor {
 
 #[repr(C)]
 pub struct FunctionTypeMismatchData {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
+    pub location: SourceLocation,
+    pub data_type: TypeDescriptor,
 }
 
 #[repr(C)]
 pub struct InvalidBuiltinData {
-    location: SourceLocation,
-    kind: u8,
+    pub location: SourceLocation,
+    pub kind: u8,
 }
 
 #[repr(C)]
 pub struct InvalidValueData {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
+    pub location: SourceLocation,
+    pub data_type: TypeDescriptor,
 }
 
 #[repr(C)]
 pub struct NonnullArgData {
-    location: SourceLocation,
-    attr_location: SourceLocation,
-    arg_index: u32,
+    pub location: SourceLocation,
+    pub attr_location: SourceLocation,
+    pub arg_index: u32,
 }
 
 #[repr(C)]
 pub struct OutOfBoundsData {
-    location: SourceLocation,
-    array_type: TypeDescriptor,
-    index_type: TypeDescriptor,
+    pub location: SourceLocation,
+    pub array_type: TypeDescriptor,
+    pub index_type: TypeDescriptor,
 }
 
 #[repr(C)]
 pub struct OverflowData {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
+    pub location: SourceLocation,
+    pub data_type: TypeDescriptor,
 }
 
 #[repr(C)]
 pub struct PointerOverflowData {
-    location: SourceLocation,
+    pub location: SourceLocation,
 }
 
 #[repr(C)]
 pub struct ShiftOutOfBoundsData {
-    location: SourceLocation,
-    lhs_type: TypeDescriptor,
-    rhs_type: TypeDescriptor,
+    pub location: SourceLocation,
+    pub lhs_type: TypeDescriptor,
+    pub rhs_type: TypeDescriptor,
 }
 
 #[repr(C)]
 pub struct TypeMismatchData {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
-    alignment: u64,
-    type_check_kind: u8,
+    pub location: SourceLocation,
+    pub data_type: TypeDescriptor,
+    pub alignment: u64,
+    pub type_check_kind: u8,
 }
 
 #[repr(C)]
 pub struct TypeMismatchDataV1 {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
-    log_alignment: u8,
-    type_check_kind: u8,
+    pub location: SourceLocation,
+    pub data_type: TypeDescriptor,
+    pub log_alignment: u8,
+    pub type_check_kind: u8,
 }
 
 #[repr(C)]
 pub struct UnreachableData {
-    location: SourceLocation,
-    data_type: TypeDescriptor,
-    alignment: u64,
-    type_check_kind: u8,
+    pub location: SourceLocation,
+    pub data_type: TypeDescriptor,
+    pub alignment: u64,
+    pub type_check_kind: u8,
 }
 
 
@@ -270,6 +270,11 @@ unsafe fn handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
 
 
 
+/// Handle calls to the `__builtin_unreachable()` compiler builtin.
+///
+/// As the builtin is used to signal the compiler that a code path is not reachable it should never
+/// be executed.
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -281,6 +286,30 @@ pub unsafe extern "C" fn __ubsan_handle_builtin_unreachable(data: *const Unreach
     epilogue();
 }
 
+/// Handle overflows on division or remainder (modulo) operations.
+///
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
+#[no_mangle]
+pub unsafe extern "C" fn __ubsan_handle_divrem_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
+    assert!(!data.is_null());
+    handle_overflow(data, lhs, rhs, "divrem", "division-overflow");
+}
+
+/// Handle function calls that use a pointer to an incorrect function type.
+///
+/// # Safety
+///
+/// This function should not be called by any other than the UndefinedBehaviorSanitizer
+#[no_mangle]
+pub unsafe extern "C" fn __ubsan_handle_function_type_mismatch(data: *const FunctionTypeMismatchData, ptr: usize) {
+    assert!(!data.is_null());
+    handle_function_type_mismatch(data, ptr)
+}
+
+/// Handle the usage of compiler builtins with an invalid value.
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -292,24 +321,12 @@ pub unsafe extern "C" fn __ubsan_handle_invalid_builtin(data: *const InvalidBuil
     epilogue();
 }
 
-/// # Safety
+/// Handle the loading of invalid values.
 ///
-/// This function should not be called by any other than the UndefinedBehaviorSanitizer
-#[no_mangle]
-pub unsafe extern "C" fn __ubsan_handle_divrem_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
-    assert!(!data.is_null());
-    handle_overflow(data, lhs, rhs, "divrem", "division-overflow");
-}
-
-/// # Safety
+/// For example an enum might not provide a variant for every integer that it is mapped to.
+/// A boolean might be represented with more than one bit, but only have two valid representations
+/// (true, false).
 ///
-/// This function should not be called by any other than the UndefinedBehaviorSanitizer
-#[no_mangle]
-pub unsafe extern "C" fn __ubsan_handle_function_type_mismatch(data: *const FunctionTypeMismatchData, ptr: usize) {
-    assert!(!data.is_null());
-    handle_function_type_mismatch(data, ptr)
-}
-
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -325,6 +342,8 @@ pub unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidV
     epilogue();
 }
 
+/// Handle multiplication overflows
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -334,6 +353,12 @@ pub unsafe extern "C" fn __ubsan_handle_mul_overflow(data: *const OverflowData, 
     handle_overflow(data, lhs, rhs, "*", "multiplication-overflow");
 }
 
+/// Handle negation overflows.
+///
+/// In 2-complement there are more negative values than positive ones.
+/// Therefore not every negative value can be negated.
+/// When trying to negate such an integer a negation overflow will happen.
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -345,6 +370,8 @@ pub unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowDat
     epilogue();
 }
 
+/// Handle null pointers being passed as arguments where the argument is declared to never be null.
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -356,6 +383,8 @@ pub unsafe extern "C" fn __ubsan_handle_nonnull_arg(data: *const NonnullArgData)
     epilogue();
 }
 
+/// Handle out-of-bounds accesses to arrays.
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -371,6 +400,10 @@ pub unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsDa
     epilogue();
 }
 
+/// Handle overflows on pointer arithmetic.
+///
+/// This also includes operations where either the old or the new pointer value is a null pointer.
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -382,6 +415,14 @@ pub unsafe extern "C" fn __ubsan_handle_pointer_overflow(data: *const PointerOve
     epilogue();
 }
 
+/// Handle out-of-bounds shift operations.
+///
+/// This can be caused by:
+/// * the shift exponent being negative
+/// * the shift exponent being larger than the width of the data type
+/// * a left shift of a negative value
+/// * some other shift operation where the result cannot be represented in the target type
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -424,6 +465,13 @@ pub unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOu
     epilogue();
 }
 
+/// Handle type mismatches.
+///
+/// This may be caused by:
+/// * the dereferencing of a null pointer
+/// * a misaligned access
+/// * an attempt to use bytes which are not part of the object being accessed
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
@@ -433,6 +481,13 @@ pub unsafe extern "C" fn __ubsan_handle_type_mismatch(data: *const TypeMismatchD
     handle_type_mismatch(data, ptr);
 }
 
+/// Handle type mismatches.
+///
+/// This may be caused by:
+/// * the dereferencing of a null pointer
+/// * a misaligned access
+/// * an attempt to use bytes which are not part of the object being accessed
+///
 /// # Safety
 ///
 /// This function should not be called by any other than the UndefinedBehaviorSanitizer
