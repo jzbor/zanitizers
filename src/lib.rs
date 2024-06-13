@@ -15,7 +15,13 @@ use core::ptr;
 pub mod ubsan;
 #[cfg(feature = "std")]
 mod userspace;
-mod primitives;
+
+/// This module contains the primitives that need to be implemented to enable the usage of this
+/// library in a program environment.
+///
+/// An implementation for the user space is provided in [`crate::userspace`] and can be enabled
+/// with the `std` feature.
+pub mod primitives;
 mod spinlock;
 
 pub fn test() {

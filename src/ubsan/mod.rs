@@ -11,7 +11,7 @@ use crate::eprintln;
 
 
 static LOCK: Spinlock = Spinlock::new();
-static PROLOGUE_HEADER: &str = "=== UNDEFINED BEHAVIOUR DETECTED ===";
+const PROLOGUE_HEADER: &str = "=== UNDEFINED BEHAVIOUR DETECTED ===";
 const TYPE_CHECK_KINDS: [&str; 8] = [
     "load of",
     "store to",

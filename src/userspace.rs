@@ -5,17 +5,19 @@ use std::io::Write;
 use std::process::exit;
 use std::slice;
 
+/// Write error message to stderr
 #[no_mangle]
 pub unsafe extern "C" fn zan_write(buffer: *const u8, nbytes: usize) {
     let buf = slice::from_raw_parts(buffer, nbytes);
     stderr().write_all(buf).unwrap();
 }
 
+/// Abort the program by exiting with error code
 #[no_mangle]
 pub unsafe extern "C" fn zan_abort() {
     exit(1);
 }
 
+/// Right now this does nothing, but it would be great to disable UNIX signals for example
 #[no_mangle]
-// didn't find a sane way to do this without additional crates
-pub fn zan_disable_interrupts() {}
+pub unsafe fn zan_disable_interrupts() {}

@@ -1,7 +1,16 @@
 extern "C" {
-    pub fn zan_write(buffer: *const u8, nbytes: usize);
-    pub fn zan_abort();
-    pub fn zan_disable_interrupts();
+/// Prints out an error message to a debug output
+///
+/// # Arguments
+/// * `buffer`: pointer to character array containing at least `nbytes`
+/// * `nbytes`: number of bytes in the buffer
+pub fn zan_write(buffer: *const u8, nbytes: usize);
+
+/// Aborts the program
+pub fn zan_abort();
+
+/// Tries to disable interrupts or signals to ensure coherent debug output
+pub fn zan_disable_interrupts();
 }
 
 
