@@ -26,8 +26,8 @@ pub fn _eprint(args: core::fmt::Arguments) {
     }
 }
 
-#[cfg_attr(not(feature = "std"), panic_handler)]
-#[cfg(not(feature = "std"))]
+#[cfg_attr(not(any(feature = "std", test)), panic_handler)]
+#[cfg(not(any(feature = "std", test)))]
 fn panic(info: &core::panic::PanicInfo) -> ! {
     eprintln!("{}", info);
     unsafe { zan_abort(); }
