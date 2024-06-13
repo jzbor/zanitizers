@@ -28,7 +28,7 @@ const TYPE_CHECK_KINDS: [&str; 8] = [
 #[allow(dead_code)]
 #[derive(Clone, Copy)]
 #[repr(u16)]
-enum TypeKind {
+pub enum TypeKind {
     Int = 0,
     Float = 1,
     Unknown = 0xffff,
@@ -36,7 +36,7 @@ enum TypeKind {
 
 #[derive(Clone)]
 #[repr(C)]
-struct SourceLocation {
+pub struct SourceLocation {
     filename: *const c_char,
     line: u32,
     column: u32,
@@ -44,7 +44,7 @@ struct SourceLocation {
 
 #[derive(Clone)]
 #[repr(C)]
-struct TypeDescriptor {
+pub struct TypeDescriptor {
     type_kind: u16,
     type_info: u16,
     type_name: *const c_char,
@@ -53,57 +53,57 @@ struct TypeDescriptor {
 // DATA STRUCTS
 
 #[repr(C)]
-struct FunctionTypeMismatchData {
+pub struct FunctionTypeMismatchData {
     location: SourceLocation,
     data_type: TypeDescriptor,
 }
 
 #[repr(C)]
-struct InvalidBuiltinData {
+pub struct InvalidBuiltinData {
     location: SourceLocation,
     kind: u8,
 }
 
 #[repr(C)]
-struct InvalidValueData {
+pub struct InvalidValueData {
     location: SourceLocation,
     data_type: TypeDescriptor,
 }
 
 #[repr(C)]
-struct NonnullArgData {
+pub struct NonnullArgData {
     location: SourceLocation,
     attr_location: SourceLocation,
     arg_index: u32,
 }
 
 #[repr(C)]
-struct OutOfBoundsData {
+pub struct OutOfBoundsData {
     location: SourceLocation,
     array_type: TypeDescriptor,
     index_type: TypeDescriptor,
 }
 
 #[repr(C)]
-struct OverflowData {
+pub struct OverflowData {
     location: SourceLocation,
     data_type: TypeDescriptor,
 }
 
 #[repr(C)]
-struct PointerOverflowData {
+pub struct PointerOverflowData {
     location: SourceLocation,
 }
 
 #[repr(C)]
-struct ShiftOutOfBoundsData {
+pub struct ShiftOutOfBoundsData {
     location: SourceLocation,
     lhs_type: TypeDescriptor,
     rhs_type: TypeDescriptor,
 }
 
 #[repr(C)]
-struct TypeMismatchData {
+pub struct TypeMismatchData {
     location: SourceLocation,
     data_type: TypeDescriptor,
     alignment: u64,
@@ -111,7 +111,7 @@ struct TypeMismatchData {
 }
 
 #[repr(C)]
-struct TypeMismatchDataV1 {
+pub struct TypeMismatchDataV1 {
     location: SourceLocation,
     data_type: TypeDescriptor,
     log_alignment: u8,
@@ -119,7 +119,7 @@ struct TypeMismatchDataV1 {
 }
 
 #[repr(C)]
-struct UnreachableData {
+pub struct UnreachableData {
     location: SourceLocation,
     data_type: TypeDescriptor,
     alignment: u64,
@@ -128,35 +128,35 @@ struct UnreachableData {
 
 
 impl TypeDescriptor {
-    fn bit_width(&self) -> usize {
+    pub fn bit_width(&self) -> usize {
         1 << (self.type_info >> 1)
     }
 
-    fn is_inline_int(&self) -> bool {
+    pub fn is_inline_int(&self) -> bool {
         self.bit_width() <= (mem::size_of::<c_ulong>() * 8)
     }
 
-    fn is_int(&self) -> bool {
+    pub fn is_int(&self) -> bool {
         self.type_kind == TypeKind::Int as u16
     }
 
-    fn is_signed(&self) -> bool {
+    pub fn is_signed(&self) -> bool {
         self.type_info & 1 != 0
     }
 
-    fn is_signed_int(&self) -> bool {
+    pub fn is_signed_int(&self) -> bool {
         self.is_int() && self.is_signed()
     }
 
-    fn is_negative(&self, val: *const c_void) -> bool {
+    pub fn is_negative(&self, val: *const c_void) -> bool {
         self.is_signed() && self.signed_value(val) < 0
     }
 
-    fn is_unsigned_int(&self) -> bool {
+    pub fn is_unsigned_int(&self) -> bool {
         self.is_int() && !self.is_signed()
     }
 
-    fn signed_value(&self, val: *const c_void) -> i64 {
+    pub fn signed_value(&self, val: *const c_void) -> i64 {
         if self.is_inline_int() {
             let extra_bits = mem::size_of::<i64>() * 8 - self.bit_width();
             let u64_val = val as u64;
@@ -166,7 +166,7 @@ impl TypeDescriptor {
         unsafe { *(val as *const i64) }
     }
 
-    fn unsigned_value(&self, val: *const c_void) -> u64 {
+    pub fn unsigned_value(&self, val: *const c_void) -> u64 {
         if self.is_inline_int() {
             return val as u64;
         }
@@ -174,7 +174,7 @@ impl TypeDescriptor {
         unsafe { *(val as *const u64) }
     }
 
-    fn print_data(&self, val: *const c_void) {
+    pub fn print_data(&self, val: *const c_void) {
         if self.is_signed_int() {
             let ival = self.signed_value(val);
             eprint!("{}", ival);
@@ -269,7 +269,7 @@ unsafe fn handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
 // UBSAN ROUTINES
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_builtin_unreachable(data: *const UnreachableData) {
+pub unsafe extern "C" fn __ubsan_handle_builtin_unreachable(data: *const UnreachableData) {
     assert!(!data.is_null());
     prologue(&(*data).location, "unreachable");
     eprintln!("calling __builtin_unreachable()");
@@ -277,7 +277,7 @@ unsafe extern "C" fn __ubsan_handle_builtin_unreachable(data: *const Unreachable
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_invalid_builtin(data: *const InvalidBuiltinData) {
+pub unsafe extern "C" fn __ubsan_handle_invalid_builtin(data: *const InvalidBuiltinData) {
     assert!(!data.is_null());
     prologue(&(*data).location, "builtin");
     eprintln!("invalid value passed to compiler builtin");
@@ -285,19 +285,19 @@ unsafe extern "C" fn __ubsan_handle_invalid_builtin(data: *const InvalidBuiltinD
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_divrem_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
+pub unsafe extern "C" fn __ubsan_handle_divrem_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
     assert!(!data.is_null());
     handle_overflow(data, lhs, rhs, "divrem", "division-overflow");
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_function_type_mismatch(data: *const FunctionTypeMismatchData, ptr: usize) {
+pub unsafe extern "C" fn __ubsan_handle_function_type_mismatch(data: *const FunctionTypeMismatchData, ptr: usize) {
     assert!(!data.is_null());
     handle_function_type_mismatch(data, ptr)
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidValueData, val: *const c_void) {
+pub unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidValueData, val: *const c_void) {
     assert!(!data.is_null());
     prologue(&(*data).location, "invalid-load");
 
@@ -309,13 +309,13 @@ unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidValue
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_mul_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
+pub unsafe extern "C" fn __ubsan_handle_mul_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *const c_void) {
     assert!(!data.is_null());
     handle_overflow(data, lhs, rhs, "*", "multiplication-overflow");
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowData, val: u64) {
+pub unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowData, val: u64) {
     assert!(!data.is_null());
     prologue(&(*data).location, "negate-overflow");
     eprintln!("negation of {} cannot be represented in type {}", val, (*data).data_type);
@@ -323,7 +323,7 @@ unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowData, v
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_nonnull_arg(data: *const NonnullArgData) {
+pub unsafe extern "C" fn __ubsan_handle_nonnull_arg(data: *const NonnullArgData) {
     assert!(!data.is_null());
     prologue(&(*data).location, "nonnull-arg");
     eprintln!("null pointer was passed as argument {}, which is defined to never be null", (*data).arg_index);
@@ -331,7 +331,7 @@ unsafe extern "C" fn __ubsan_handle_nonnull_arg(data: *const NonnullArgData) {
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsData, index: *const c_void) {
+pub unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsData, index: *const c_void) {
     assert!(!data.is_null());
     prologue(&(*data).location, "array-index-out-of-bounds");
 
@@ -343,7 +343,7 @@ unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsData, 
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_pointer_overflow(data: *const PointerOverflowData, base: usize, result: usize) {
+pub unsafe extern "C" fn __ubsan_handle_pointer_overflow(data: *const PointerOverflowData, base: usize, result: usize) {
     assert!(!data.is_null());
     prologue(&(*data).location, "pointer-overflow");
     eprintln!("pointer expression with base {} overflowed to {}", base, result);
@@ -351,7 +351,7 @@ unsafe extern "C" fn __ubsan_handle_pointer_overflow(data: *const PointerOverflo
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOutOfBoundsData, lhs: *const c_void, rhs: *const c_void) {
+pub unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOutOfBoundsData, lhs: *const c_void, rhs: *const c_void) {
     assert!(!data.is_null());
     prologue(&(*data).location, "shift-out-of-bounds");
 
@@ -390,13 +390,13 @@ unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOutOfB
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
+pub unsafe extern "C" fn __ubsan_handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
     assert!(!data.is_null());
     handle_type_mismatch(data, ptr);
 }
 
 #[no_mangle]
-unsafe extern "C" fn __ubsan_handle_type_mismatch_v1(data: *const TypeMismatchDataV1, ptr: usize) {
+pub unsafe extern "C" fn __ubsan_handle_type_mismatch_v1(data: *const TypeMismatchDataV1, ptr: usize) {
     assert!(!data.is_null());
     let data = TypeMismatchData {
         location: (*data).location.clone(),
