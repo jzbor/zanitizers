@@ -54,7 +54,7 @@ pub struct TypeDescriptor {
     /// type is signed](`Self::is_signed()`).
     pub type_info: u16,
     /// The type name as null-terminated ASCII string.
-    pub type_name: *const c_char,
+    pub type_name: [c_char; 1],
 }
 
 // DATA STRUCTS
@@ -63,7 +63,7 @@ pub struct TypeDescriptor {
 #[repr(C)]
 pub struct FunctionTypeMismatchData {
     pub location: SourceLocation,
-    pub data_type: TypeDescriptor,
+    pub data_type: *const TypeDescriptor,
 }
 
 /// Data struct for [`__ubsan_handle_invalid_builtin()`]
@@ -77,7 +77,7 @@ pub struct InvalidBuiltinData {
 #[repr(C)]
 pub struct InvalidValueData {
     pub location: SourceLocation,
-    pub data_type: TypeDescriptor,
+    pub data_type: *const TypeDescriptor,
 }
 
 /// Data struct for [`__ubsan_handle_nonnull_arg()`]
@@ -92,15 +92,15 @@ pub struct NonnullArgData {
 #[repr(C)]
 pub struct OutOfBoundsData {
     pub location: SourceLocation,
-    pub array_type: TypeDescriptor,
-    pub index_type: TypeDescriptor,
+    pub array_type: *const TypeDescriptor,
+    pub index_type: *const TypeDescriptor,
 }
 
 /// Data struct for [`__ubsan_handle_divrem_overflow()`], [`__ubsan_handle_mul_overflow()`] and [`__ubsan_handle_negate_overflow()`]
 #[repr(C)]
 pub struct OverflowData {
     pub location: SourceLocation,
-    pub data_type: TypeDescriptor,
+    pub data_type: *const TypeDescriptor,
 }
 
 /// Data struct for [`__ubsan_handle_pointer_overflow()`]
@@ -113,15 +113,15 @@ pub struct PointerOverflowData {
 #[repr(C)]
 pub struct ShiftOutOfBoundsData {
     pub location: SourceLocation,
-    pub lhs_type: TypeDescriptor,
-    pub rhs_type: TypeDescriptor,
+    pub lhs_type: *const TypeDescriptor,
+    pub rhs_type: *const TypeDescriptor,
 }
 
 /// Data struct for [`__ubsan_handle_type_mismatch()`]
 #[repr(C)]
 pub struct TypeMismatchData {
     pub location: SourceLocation,
-    pub data_type: TypeDescriptor,
+    pub data_type: *const TypeDescriptor,
     pub alignment: u64,
     pub type_check_kind: u8,
 }
@@ -133,7 +133,7 @@ pub struct TypeMismatchData {
 #[repr(C)]
 pub struct TypeMismatchDataV1 {
     pub location: SourceLocation,
-    pub data_type: TypeDescriptor,
+    pub data_type: *const TypeDescriptor,
     pub log_alignment: u8,
     pub type_check_kind: u8,
 }
@@ -142,7 +142,7 @@ pub struct TypeMismatchDataV1 {
 #[repr(C)]
 pub struct UnreachableData {
     pub location: SourceLocation,
-    pub data_type: TypeDescriptor,
+    pub data_type: *const TypeDescriptor,
     pub alignment: u64,
     pub type_check_kind: u8,
 }
@@ -211,7 +211,7 @@ impl TypeDescriptor {
 impl Display for TypeDescriptor {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         unsafe {
-            if let Ok(label) = CStr::from_ptr(self.type_name).to_str() {
+            if let Ok(label) = CStr::from_ptr(self.type_name.as_ptr()).to_str() {
                 write!(f, "{}", label)
             } else {
                 write!(f, "unknown")
@@ -262,26 +262,30 @@ unsafe fn handle_overflow(data: *const OverflowData, lhs: *const c_void, rhs: *c
     prologue(&(*data).location, reason);
 
     eprint!("operation '");
-    (*data).data_type.print_data(lhs);
+    (*(*data).data_type).print_data(lhs);
     eprint!(" {} ", op);
-    (*data).data_type.print_data(rhs);
-    eprint!("' cannot be represented in type {}", (*data).data_type);
+    (*(*data).data_type).print_data(rhs);
+    eprint!("' cannot be represented in type {}", *(*data).data_type);
 
     epilogue();
 }
 
 unsafe fn handle_type_mismatch(data: *const TypeMismatchData, ptr: usize) {
+    let type_check_kind = match TYPE_CHECK_KINDS.get((*data).type_check_kind as usize) {
+        Some(s) => s,
+        None => "unknown",
+    };
     if ptr == 0 {
         prologue(&(*data).location, "null-ptr-deref");
-        eprint!("{} null pointer of type {}", TYPE_CHECK_KINDS[(*data).type_check_kind as usize], (*data).data_type);
+        eprintln!("{} null pointer of type {}", type_check_kind, (*(*data).data_type));
         epilogue();
     } else if (*data).alignment != 0 && (ptr % (*data).alignment as usize != 0) {
         prologue(&(*data).location, "misaligned-access");
-        eprint!("{} misaligned address {} for type {}", TYPE_CHECK_KINDS[(*data).type_check_kind as usize], ptr, (*data).data_type);
+        eprintln!("{} misaligned address {} for type {}", type_check_kind, ptr, (*(*data).data_type));
         epilogue();
     } else {
         prologue(&(*data).location, "object-size-mismatch");
-        eprint!("{} address {} with insufficient space", TYPE_CHECK_KINDS[(*data).type_check_kind as usize], ptr);
+        eprintln!("{} address {} with insufficient space", type_check_kind, ptr);
         epilogue();
     }
 }
@@ -357,8 +361,8 @@ pub unsafe extern "C" fn __ubsan_handle_load_invalid_value(data: *const InvalidV
     prologue(&(*data).location, "invalid-load");
 
     eprint!("load of value ");
-    (*data).data_type.print_data(val);
-    eprintln!("is not a valid value for type {}", (*data).data_type);
+    (*(*data).data_type).print_data(val);
+    eprintln!("is not a valid value for type {}", *(*data).data_type);
 
     epilogue();
 }
@@ -387,7 +391,7 @@ pub unsafe extern "C" fn __ubsan_handle_mul_overflow(data: *const OverflowData, 
 pub unsafe extern "C" fn __ubsan_handle_negate_overflow(data: *const OverflowData, val: u64) {
     assert!(!data.is_null());
     prologue(&(*data).location, "negate-overflow");
-    eprintln!("negation of {} cannot be represented in type {}", val, (*data).data_type);
+    eprintln!("negation of {} cannot be represented in type {}", val, *(*data).data_type);
     epilogue();
 }
 
@@ -415,8 +419,8 @@ pub unsafe extern "C" fn __ubsan_handle_out_of_bounds(data: *const OutOfBoundsDa
     prologue(&(*data).location, "array-index-out-of-bounds");
 
     eprint!("index ");
-    (*data).index_type.print_data(index);
-    eprintln!(" is out of range for type {}", (*data).array_type);
+    (*(*data).index_type).print_data(index);
+    eprintln!(" is out of range for type {}", *(*data).array_type);
 
     epilogue();
 }
@@ -452,8 +456,8 @@ pub unsafe extern "C" fn __ubsan_handle_shift_out_of_bounds(data: *const ShiftOu
     assert!(!data.is_null());
     prologue(&(*data).location, "shift-out-of-bounds");
 
-    let lhs_type = &(*data).lhs_type;
-    let rhs_type = &(*data).rhs_type;
+    let lhs_type = &(*(*data).lhs_type);
+    let rhs_type = &(*(*data).rhs_type);
 
     eprint!("Lhs: \t\t");
     lhs_type.print_data(lhs);
@@ -517,8 +521,8 @@ pub unsafe extern "C" fn __ubsan_handle_type_mismatch_v1(data: *const TypeMismat
     assert!(!data.is_null());
     let data = TypeMismatchData {
         location: (*data).location.clone(),
-        data_type: (*data).data_type.clone(),
-        alignment: 1 << (*data).log_alignment,
+        data_type: (*data).data_type,
+        alignment: 1u64 << (*data).log_alignment,
         type_check_kind: (*data).type_check_kind,
     };
     handle_type_mismatch(&data, ptr);

@@ -1,3 +1,5 @@
+use core::fmt::Write;
+
 extern "C" {
 /// Prints out an error message to a debug output
 ///
@@ -11,6 +13,21 @@ pub fn zan_abort();
 
 /// Tries to disable interrupts or signals to ensure coherent debug output
 pub fn zan_disable_interrupts();
+}
+
+struct ZanWriter {}
+
+impl ZanWriter {
+    const fn new() -> Self {
+        ZanWriter {}
+    }
+}
+
+impl core::fmt::Write for ZanWriter {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        unsafe { zan_write(s.as_ptr(), s.len()); }
+        Ok(())
+    }
 }
 
 
@@ -28,11 +45,7 @@ macro_rules! eprintln {
 
 #[doc(hidden)]
 pub fn _eprint(args: core::fmt::Arguments) {
-    unsafe {
-        if let Some(str) = args.as_str() {
-            zan_write(str.as_ptr(), str.as_bytes().len());
-        }
-    }
+    let _ = write!(ZanWriter::new(), "{}", args);
 }
 
 #[cfg_attr(not(any(feature = "std", test)), panic_handler)]
